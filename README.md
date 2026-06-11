@@ -19,15 +19,22 @@
 - 動畫從 CSS keyframes + 手寫 JS 指標追蹤，換成 `motion` 的宣告式 API
 - 樣式從 460 行手寫 CSS 變成 utility class + ~80 行自訂 CSS
 
-## 效能筆記（liquid glass 卡頓的根源與解法)
+## 效能筆記（liquid glass 卡頓的根源與解法）
 
-displacement 型 backdrop-filter 的隱形成本：**玻璃背後任何東西變動的每一幀，折射都要整個重算**。優化手段：
+displacement 型 backdrop-filter 的隱形成本：**玻璃背後任何東西變動的每一幀，折射都要整個重算**。動態背景 + displacement 玻璃在中低階裝置上注定卡。
+
+試過的路與結論：
+
+- ~~背景動畫 `steps()` 步進化~~：折射重算次數確實降了，但步進的跳格本身看起來就像卡頓，棄案
+- **最終解：把貴的效果做成選配**。預設用 `backdrop-filter: blur(20px) saturate(170%)` 的便宜玻璃，背景維持絲滑連續動畫；右下角開關切換 displacement 液態折射，想看技術效果再開
+- 實測（同機軟體渲染）：預設模式 60fps 滿幀，折射開啟 23fps——量化了兩種玻璃的成本差距
+
+其他保留的優化：
 
 1. 發光背景不用 `filter: blur(90px)` 大色塊（GPU 填充成本極高），改用自帶柔邊的 `radial-gradient`
-2. `elasticity={0}`：關掉滑鼠彈性跟隨後卡片不再每幀位移，backdrop 不用每幀重算
-3. 背景動畫全部 `steps()` 步進化（星盤旋轉、星雲漂移、星星閃爍）——視覺上看不出差別，但折射只在步進那幀重算
+2. `elasticity={0}`：卡片不每幀位移，折射開啟時不至於雪上加霜
+3. 星辰圖用單張 canvas 畫一次，旋轉交給 CSS transform（合成器處理，不重繪）
 4. 閃爍星星的生成座標避開玻璃卡正後方
-5. 星辰圖用單張 canvas 畫一次，旋轉交給 CSS transform（合成器處理，不重繪）
 
 ## 踩雷筆記（用 liquid-glass-react 必讀）
 

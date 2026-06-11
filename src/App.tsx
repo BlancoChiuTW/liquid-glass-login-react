@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import LiquidGlass from 'liquid-glass-react'
 
@@ -182,27 +182,8 @@ function Field({ label, type, placeholder, autoComplete }: {
   )
 }
 
-export default function App() {
+function CardContent() {
   return (
-    <div className="relative grid min-h-dvh place-items-center px-4 py-8">
-      <Sky />
-
-      {/* 星環墊在玻璃卡後面，給液態折射扭曲用 */}
-      <div className="zodiac-ring absolute aspect-square w-[min(560px,130vw)] rounded-full" aria-hidden />
-
-      {/* LiquidGlass 的三層 div 都以 top/left 50% + translate(-50%,-50%) 自我置中，
-          須給 position:absolute 讓它們脫離文流，否則特效層會把內容往下推 */}
-      {/* elasticity=0：卡片不再每幀位移，背後的折射就不用每幀重算（流暢度關鍵） */}
-      <LiquidGlass
-        displacementScale={48}
-        blurAmount={0.09}
-        saturation={170}
-        aberrationIntensity={1.5}
-        elasticity={0}
-        cornerRadius={26}
-        padding="0"
-        style={{ position: 'absolute', top: '50%', left: '50%' }}
-      >
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -296,11 +277,56 @@ export default function App() {
               </p>
             </form>
         </motion.div>
-      </LiquidGlass>
+  )
+}
 
-      <p className="absolute bottom-3.5 m-0 w-full text-center text-[11.5px] tracking-[.15em] text-white/30">
-        React 19 + liquid-glass-react + motion + Tailwind v4
-      </p>
+export default function App() {
+  // 預設用便宜的 blur 玻璃（與連續動畫背景共存順暢）；
+  // displacement 液態折射很貴（背後每幀變動都要整個重算），做成選配開關
+  const [liquid, setLiquid] = useState(false)
+
+  return (
+    <div className="relative grid min-h-dvh place-items-center px-4 py-8">
+      <Sky />
+
+      {/* 星環墊在玻璃卡後面，開折射時會被液態扭曲 */}
+      <div className="zodiac-ring absolute aspect-square w-[min(560px,130vw)] rounded-full" aria-hidden />
+
+      {liquid ? (
+        /* LiquidGlass 的三層 div 都以 top/left 50% + translate(-50%,-50%) 自我置中，
+           須給 position:absolute 讓它們脫離文流，否則特效層會把內容往下推 */
+        <LiquidGlass
+          displacementScale={48}
+          blurAmount={0.09}
+          saturation={170}
+          aberrationIntensity={1.5}
+          elasticity={0}
+          cornerRadius={26}
+          padding="0"
+          style={{ position: 'absolute', top: '50%', left: '50%' }}
+        >
+          <CardContent />
+        </LiquidGlass>
+      ) : (
+        <div className="glass-card">
+          <CardContent />
+        </div>
+      )}
+
+      <div className="absolute inset-x-0 bottom-3 flex flex-col items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setLiquid((v) => !v)}
+          className="cursor-pointer rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs
+                     tracking-wider text-white/65 backdrop-blur-md transition-colors
+                     hover:bg-white/10 hover:text-white/90"
+        >
+          液態折射：{liquid ? '開（較耗效能）' : '關'}
+        </button>
+        <p className="m-0 text-center text-[11px] tracking-[.15em] text-white/30">
+          React 19 + liquid-glass-react + motion + Tailwind v4
+        </p>
+      </div>
     </div>
   )
 }

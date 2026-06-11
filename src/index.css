@@ -38,26 +38,23 @@ body {
   border-radius: 50%;
   will-change: transform;
 }
-/* steps()：背景以離散小步移動而非連續動畫——
-   玻璃卡的 displacement backdrop-filter 只在步進那幀重算，
-   而不是每秒 60 次（卡頓主因） */
 .nebula-a {
   width: 52vmax; height: 52vmax;
   left: -12vmax; top: -14vmax;
   background: radial-gradient(circle at 38% 38%, rgba(124, 92, 255, 0.3) 0%, rgba(59, 45, 143, 0.12) 45%, transparent 70%);
-  animation: drift-a 40s steps(120, end) infinite alternate;
+  animation: drift-a 40s ease-in-out infinite alternate;
 }
 .nebula-b {
   width: 46vmax; height: 46vmax;
   right: -14vmax; top: 14vmax;
   background: radial-gradient(circle at 60% 40%, rgba(14, 165, 164, 0.22) 0%, rgba(19, 78, 74, 0.1) 48%, transparent 72%);
-  animation: drift-b 47s steps(140, end) infinite alternate;
+  animation: drift-b 47s ease-in-out infinite alternate;
 }
 .nebula-c {
   width: 40vmax; height: 40vmax;
   left: 26vmax; bottom: -18vmax;
   background: radial-gradient(circle at 50% 50%, rgba(180, 83, 9, 0.16) 0%, rgba(124, 45, 18, 0.08) 50%, transparent 74%);
-  animation: drift-c 36s steps(110, end) infinite alternate;
+  animation: drift-c 36s ease-in-out infinite alternate;
 }
 
 /* 星辰圖：canvas 畫一次，整張用 CSS 旋轉（GPU 合成） */
@@ -70,7 +67,7 @@ body {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  animation: chart-spin 420s steps(840, end) infinite;
+  animation: chart-spin 280s linear infinite;
   will-change: transform;
   opacity: 0.95;
 }
@@ -84,8 +81,7 @@ body {
   position: absolute;
   border-radius: 50%;
   background: #fff;
-  /* steps(5)：閃爍改為離散變化，避免 36 顆星每幀逼出全頁重合成 */
-  animation: twinkle var(--d) steps(5, end) infinite alternate;
+  animation: twinkle var(--d) ease-in-out infinite alternate;
 }
 
 /* 旋轉星環 */
@@ -101,8 +97,7 @@ body {
   );
   -webkit-mask: radial-gradient(closest-side, transparent 78%, #000 79%, #000 82%, transparent 83%);
           mask: radial-gradient(closest-side, transparent 78%, #000 79%, #000 82%, transparent 83%);
-  /* 在玻璃卡正後方，一樣步進化避免每幀重算折射 */
-  animation: spin-slow 50s steps(300, end) infinite;
+  animation: spin-slow 50s linear infinite;
 }
 
 @keyframes spin-fast {
@@ -112,8 +107,28 @@ body {
   background: conic-gradient(from 90deg, #e8c87a, #a78bfa, #5eead4, #e8c87a);
   -webkit-mask: radial-gradient(closest-side, transparent 70%, #000 71%);
           mask: radial-gradient(closest-side, transparent 70%, #000 71%);
-  animation: spin-fast 9s steps(108, end) infinite;
+  animation: spin-fast 9s linear infinite;
   filter: drop-shadow(0 0 8px rgba(232, 200, 122, 0.5));
+}
+
+/* 預設玻璃卡：純 blur+saturate，GPU 上與連續動畫背景共存無壓力。
+   displacement 折射改為右下角開關選配 */
+.glass-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 26px;
+  isolation: isolate;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035) 45%, rgba(255, 255, 255, 0.07));
+  backdrop-filter: blur(20px) saturate(170%);
+  -webkit-backdrop-filter: blur(20px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    0 30px 70px -30px rgba(0, 0, 0, 0.8),
+    0 0 80px -30px rgba(124, 92, 255, 0.35);
 }
 
 /* CTA 流光 */
