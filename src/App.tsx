@@ -1,21 +1,127 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { motion } from 'motion/react'
 import LiquidGlass from 'liquid-glass-react'
 
 type Star = { left: string; top: string; size: number; o: string; d: string }
 
+/** 星辰圖：古星盤風格的 canvas 星圖（同心圓 + 二十八宿式分區 + 星座連線），
+ *  只畫一次，旋轉交給 CSS transform（純合成層，不重繪） */
+function StarChart() {
+  const ref = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const cv = ref.current
+    if (!cv) return
+
+    const draw = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      const size = Math.max(window.innerWidth, window.innerHeight) * 1.5
+      cv.width = size * dpr
+      cv.height = size * dpr
+      cv.style.width = `${size}px`
+      cv.style.height = `${size}px`
+      const ctx = cv.getContext('2d')
+      if (!ctx) return
+      ctx.scale(dpr, dpr)
+      const c = size / 2
+
+      // 同心圓（最外圈實線、中間虛線）
+      const rings = [0.26, 0.4, 0.54, 0.68]
+      rings.forEach((f, i) => {
+        ctx.beginPath()
+        ctx.arc(c, c, c * f, 0, Math.PI * 2)
+        ctx.strokeStyle = i === rings.length - 1 ? 'rgba(190,200,240,0.12)' : 'rgba(190,200,240,0.06)'
+        ctx.setLineDash(i % 2 === 1 ? [4, 9] : [])
+        ctx.lineWidth = 1
+        ctx.stroke()
+      })
+      ctx.setLineDash([])
+
+      // 放射分區線（仿星盤的宿度分割）
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2
+        ctx.beginPath()
+        ctx.moveTo(c + Math.cos(a) * c * 0.26, c + Math.sin(a) * c * 0.26)
+        ctx.lineTo(c + Math.cos(a) * c * 0.68, c + Math.sin(a) * c * 0.68)
+        ctx.strokeStyle = i % 2 === 0 ? 'rgba(190,200,240,0.045)' : 'rgba(190,200,240,0.025)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+      }
+
+      // 散星：均勻灑在盤面內
+      for (let i = 0; i < 240; i++) {
+        const a = Math.random() * Math.PI * 2
+        const r = Math.sqrt(Math.random()) * c * 0.7
+        const x = c + Math.cos(a) * r
+        const y = c + Math.sin(a) * r
+        const s = Math.random() < 0.12 ? 1.6 : Math.random() < 0.5 ? 1 : 0.7
+        ctx.beginPath()
+        ctx.arc(x, y, s, 0, Math.PI * 2)
+        const warm = Math.random() < 0.25
+        ctx.fillStyle = warm
+          ? `rgba(232,200,122,${0.35 + Math.random() * 0.4})`
+          : `rgba(220,228,255,${0.3 + Math.random() * 0.45})`
+        ctx.fill()
+      }
+
+      // 星座：群聚的亮星 + 連線
+      for (let g = 0; g < 10; g++) {
+        const ga = Math.random() * Math.PI * 2
+        const gr = (0.18 + Math.random() * 0.45) * c
+        const gx = c + Math.cos(ga) * gr
+        const gy = c + Math.sin(ga) * gr
+        const n = 4 + Math.floor(Math.random() * 4)
+        const pts = Array.from({ length: n }, () => ({
+          x: gx + (Math.random() - 0.5) * c * 0.2,
+          y: gy + (Math.random() - 0.5) * c * 0.2,
+        }))
+
+        ctx.beginPath()
+        pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)))
+        ctx.strokeStyle = 'rgba(167,180,255,0.16)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+
+        pts.forEach((p) => {
+          const s = 1.4 + Math.random() * 1.2
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, s, 0, Math.PI * 2)
+          ctx.shadowColor = 'rgba(190,205,255,0.8)'
+          ctx.shadowBlur = 6
+          ctx.fillStyle = 'rgba(235,240,255,0.9)'
+          ctx.fill()
+          ctx.shadowBlur = 0
+        })
+      }
+    }
+
+    draw()
+    window.addEventListener('resize', draw)
+    return () => window.removeEventListener('resize', draw)
+  }, [])
+
+  return <canvas ref={ref} className="star-chart" aria-hidden />
+}
+
 function Sky() {
-  const stars = useMemo<Star[]>(
-    () =>
-      Array.from({ length: 90 }, () => ({
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        size: Math.random() < 0.15 ? 3 : Math.random() < 0.5 ? 2 : 1,
-        o: (0.25 + Math.random() * 0.6).toFixed(2),
+  const stars = useMemo<Star[]>(() => {
+    const out: Star[] = []
+    while (out.length < 36) {
+      const x = Math.random() * 100
+      const y = Math.random() * 100
+      // 避開畫面中央（玻璃卡正後方）：閃爍動畫若落在卡片背後，
+      // 會逼 backdrop-filter 每幀重算
+      if (x > 24 && x < 76 && y > 14 && y < 86) continue
+      out.push({
+        left: `${x}%`,
+        top: `${y}%`,
+        size: Math.random() < 0.2 ? 3 : 2,
+        o: (0.3 + Math.random() * 0.55).toFixed(2),
         d: `${(2 + Math.random() * 4).toFixed(1)}s`,
-      })),
-    [],
-  )
+      })
+    }
+    return out
+  }, [])
 
   return (
     <div
@@ -27,30 +133,11 @@ function Sky() {
           'radial-gradient(900px 700px at 10% 110%, #14182e 0%, transparent 60%), #0b0e1d',
       }}
     >
-      <div
-        className="absolute rounded-full opacity-55 blur-[90px]"
-        style={{
-          width: '46vmax', height: '46vmax', left: '-12vmax', top: '-14vmax',
-          background: 'radial-gradient(circle at 35% 35%, #7c5cff 0%, #3b2d8f 45%, transparent 72%)',
-          animation: 'drift-a 26s ease-in-out infinite alternate',
-        }}
-      />
-      <div
-        className="absolute rounded-full opacity-55 blur-[90px]"
-        style={{
-          width: '40vmax', height: '40vmax', right: '-14vmax', top: '16vmax',
-          background: 'radial-gradient(circle at 60% 40%, #0ea5a4 0%, #134e4a 50%, transparent 74%)',
-          animation: 'drift-b 31s ease-in-out infinite alternate',
-        }}
-      />
-      <div
-        className="absolute rounded-full opacity-40 blur-[90px]"
-        style={{
-          width: '34vmax', height: '34vmax', left: '28vmax', bottom: '-18vmax',
-          background: 'radial-gradient(circle at 50% 50%, #b45309 0%, #7c2d12 52%, transparent 75%)',
-          animation: 'drift-c 23s ease-in-out infinite alternate',
-        }}
-      />
+      {/* 星雲：radial-gradient 自帶柔邊，不再用 blur() 濾鏡（效能殺手） */}
+      <div className="nebula nebula-a" />
+      <div className="nebula nebula-b" />
+      <div className="nebula nebula-c" />
+      <StarChart />
       {stars.map((s, i) => (
         <span
           key={i}
@@ -96,10 +183,8 @@ function Field({ label, type, placeholder, autoComplete }: {
 }
 
 export default function App() {
-  const stageRef = useRef<HTMLDivElement>(null)
-
   return (
-    <div ref={stageRef} className="relative grid min-h-dvh place-items-center px-4 py-8">
+    <div className="relative grid min-h-dvh place-items-center px-4 py-8">
       <Sky />
 
       {/* 星環墊在玻璃卡後面，給液態折射扭曲用 */}
@@ -107,13 +192,13 @@ export default function App() {
 
       {/* LiquidGlass 的三層 div 都以 top/left 50% + translate(-50%,-50%) 自我置中，
           須給 position:absolute 讓它們脫離文流，否則特效層會把內容往下推 */}
+      {/* elasticity=0：卡片不再每幀位移，背後的折射就不用每幀重算（流暢度關鍵） */}
       <LiquidGlass
-        mouseContainer={stageRef}
-        displacementScale={56}
+        displacementScale={48}
         blurAmount={0.09}
         saturation={170}
-        aberrationIntensity={2}
-        elasticity={0.12}
+        aberrationIntensity={1.5}
+        elasticity={0}
         cornerRadius={26}
         padding="0"
         style={{ position: 'absolute', top: '50%', left: '50%' }}

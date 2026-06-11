@@ -19,6 +19,16 @@
 - 動畫從 CSS keyframes + 手寫 JS 指標追蹤，換成 `motion` 的宣告式 API
 - 樣式從 460 行手寫 CSS 變成 utility class + ~80 行自訂 CSS
 
+## 效能筆記（liquid glass 卡頓的根源與解法)
+
+displacement 型 backdrop-filter 的隱形成本：**玻璃背後任何東西變動的每一幀，折射都要整個重算**。優化手段：
+
+1. 發光背景不用 `filter: blur(90px)` 大色塊（GPU 填充成本極高），改用自帶柔邊的 `radial-gradient`
+2. `elasticity={0}`：關掉滑鼠彈性跟隨後卡片不再每幀位移，backdrop 不用每幀重算
+3. 背景動畫全部 `steps()` 步進化（星盤旋轉、星雲漂移、星星閃爍）——視覺上看不出差別，但折射只在步進那幀重算
+4. 閃爍星星的生成座標避開玻璃卡正後方
+5. 星辰圖用單張 canvas 畫一次，旋轉交給 CSS transform（合成器處理，不重繪）
+
 ## 踩雷筆記（用 liquid-glass-react 必讀）
 
 1. **Tailwind v4 要加 `@source "../node_modules/liquid-glass-react/dist"`**：套件內部 DOM 用 Tailwind class 命名（`opacity-0`、`pointer-events-none`…），但 Tailwind 預設不掃 node_modules，class 沒生成時特效層會變成佔版面的黑色方塊
