@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+/* liquid-glass-react 內部用 Tailwind class 命名，須納入掃描範圍才會生成對應樣式 */
+@source "../node_modules/liquid-glass-react/dist";
+
+@theme {
+  --color-night: #0b0e1d;
+  --color-gold: #e8c87a;
+  --color-gold-deep: #caa45a;
+  --color-mist: rgba(238, 240, 250, 0.55);
+  --font-serif-tc: "Noto Serif TC", serif;
+  --font-sans-tc: "Noto Sans TC", -apple-system, "PingFang TC", sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: #0b0e1d;
+  color: #eef0fa;
+  font-family: var(--font-sans-tc);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* aurora blob 漂移 */
+@keyframes drift-a {
+  to { transform: translate(9vmax, 7vmax) scale(1.12); }
+}
+@keyframes drift-b {
+  to { transform: translate(-7vmax, -5vmax) scale(0.92); }
+}
+@keyframes drift-c {
+  to { transform: translate(-6vmax, -9vmax) scale(1.18); }
+}
+
+/* 星星閃爍：每顆用 CSS 變數帶自己的亮度與週期 */
+@keyframes twinkle {
+  from { opacity: calc(var(--o) * 0.25); }
+  to { opacity: var(--o); }
+}
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: twinkle var(--d) ease-in-out infinite alternate;
+}
+
+/* 旋轉星環 */
+@keyframes spin-slow {
+  to { transform: rotate(1turn); }
+}
+.zodiac-ring {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg, rgba(232, 200, 122, 0.5) 40deg, transparent 90deg,
+    transparent 150deg, rgba(94, 234, 212, 0.4) 200deg, transparent 250deg,
+    transparent 300deg, rgba(167, 139, 250, 0.45) 330deg, transparent 360deg
+  );
+  -webkit-mask: radial-gradient(closest-side, transparent 78%, #000 79%, #000 82%, transparent 83%);
+          mask: radial-gradient(closest-side, transparent 78%, #000 79%, #000 82%, transparent 83%);
+  animation: spin-slow 50s linear infinite;
+}
+
+@keyframes spin-fast {
+  to { transform: rotate(1turn); }
+}
+.sigil-ring {
+  background: conic-gradient(from 90deg, #e8c87a, #a78bfa, #5eead4, #e8c87a);
+  -webkit-mask: radial-gradient(closest-side, transparent 70%, #000 71%);
+          mask: radial-gradient(closest-side, transparent 70%, #000 71%);
+  animation: spin-fast 9s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(232, 200, 122, 0.5));
+}
+
+/* CTA 流光 */
+@keyframes sheen {
+  0%, 64% { transform: translateX(-120%); }
+  82%, 100% { transform: translateX(120%); }
+}
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.65) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: sheen 4.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star, .zodiac-ring, .sigil-ring, .sheen::after,
+  [class*="animate-"] {
+    animation: none !important;
+  }
+}
